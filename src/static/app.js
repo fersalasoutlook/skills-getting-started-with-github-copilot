@@ -27,7 +27,12 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="participants-section">
               <strong>Participants:</strong>
               <ul class="participants-list">
-                ${details.participants.map(email => `<li>${email}</li>`).join("")}
+                ${details.participants.map(email => `
+                  <li class="participant-item">
+                    <span>${email}</span>
+                    <button class="delete-participant" title="Remove participant" data-activity="${name}" data-email="${email}">&#128465;</button>
+                  </li>
+                `).join("")}
               </ul>
             </div>
           `;
@@ -47,7 +52,31 @@ document.addEventListener("DOMContentLoaded", () => {
           ${participantsHTML}
         `;
 
+
         activitiesList.appendChild(activityCard);
+
+        // Agregar manejador de eventos para eliminar participante
+        activityCard.addEventListener("click", async (e) => {
+          if (e.target.classList.contains("delete-participant")) {
+            const activityName = e.target.getAttribute("data-activity");
+            const email = e.target.getAttribute("data-email");
+            if (confirm(`Are you sure you want to remove ${email} from ${activityName}?`)) {
+              try {
+                const response = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`, {
+                  method: "DELETE",
+                });
+                const result = await response.json();
+                if (response.ok) {
+                  fetchActivities();
+                } else {
+                  alert(result.detail || "Failed to remove participant.");
+                }
+              } catch (err) {
+                alert("Error removing participant. Please try again.");
+              }
+            }
+          }
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -82,6 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Actualiza la lista de actividades automáticamente
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
